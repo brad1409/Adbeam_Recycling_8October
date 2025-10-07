@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Voucher Scanner - Adbeam</title>
+    <link rel="stylesheet" href="index.css" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+      :root {
+        --primary-blue: #2563eb;
+        --dark-blue: #1d4ed8;
+        --light-blue: #eff6ff;
+        --success-green: #10b981;
+        --warning-orange: #f59e0b;
+        --error-red: #ef4444;
+      }
+
+      body {
+        background: linear-gradient(135deg, var(--light-blue) 0%, #ffffff 100%);
+        min-height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+
+      .scanner-container {
+        max-width: 500px;
+        margin: 2rem auto;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .scanner-header {
+        background: var(--primary-blue);
+        color: white;
+        padding: 1.5rem;
+        text-align: center;
+      }
+
+      .scanner-header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+      }
+
+      .scanner-mode-toggle {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 0.5rem;
+        margin-top: 1rem;
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .mode-btn {
+        flex: 1;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: white;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .mode-btn.active {
+        background: white;
+        color: var(--primary-blue);
+      }
+
+      .camera-section {
+        position: relative;
+        background: #000;
+        aspect-ratio: 1;
+        overflow: hidden;
+      }
+
+      #scanner-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .scanner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+      }
+
+      .scan-frame {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 250px;
+        height: 250px;
+        border: 3px solid var(--primary-blue);
+        border-radius: 20px;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+      }
+
+      .scan-frame::before,
+      .scan-frame::after {
+        content: "";
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        border: 4px solid var(--success-green);
+      }
+
+      .scan-frame::before {
+        top: -4px;
+        left: -4px;
+        border-right: none;
+        border-bottom: none;
+      }
+
+      .scan-frame::after {
+        bottom: -4px;
+        right: -4px;
+        border-left: none;
+        border-top: none;
+      }
+
+      .scanning-line {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--success-green), transparent);
+        animation: scan 2s linear infinite;
+      }
+
+      @keyframes scan {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(250px); }
+      }
+
+      .scanner-controls {
+        padding: 1.5rem;
+        border-top: 1px solid #eee;
+      }
+
+      .control-btn {
+        width: 100%;
+        padding: 1rem;
+        border: none;
+        border-radius: 15px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-bottom: 1rem;
+      }
+
+      .start-btn {
+        background: var(--primary-blue);
+        color: white;
+      }
+
+      .start-btn:hover {
+        background: var(--dark-blue);
+        transform: translateY(-2px);
+      }
+
+      .start-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .stop-btn {
+        background: var(--error-red);
+        color: white;
+      }
+
+      .result-section {
+        padding: 1.5rem;
+        border-top: 1px solid #eee;
+        display: none;
+      }
+
+      .result-success {
+        background: linear-gradient(135deg, var(--success-green), #059669);
+        color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+
+      .result-error {
+        background: linear-gradient(135deg, var(--error-red), #dc2626);
+        color: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+
+      .voucher-details {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-top: 1rem;
+        text-align: left;
+      }
+
+      .voucher-details h4 {
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+      }
+
+      .voucher-details p {
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+      }
+
+      .discount-amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+      }
+
+      .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s ease-in-out infinite;
+      }
+
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .camera-error {
+        background: var(--error-red);
+        color: white;
+        padding: 2rem;
+        text-align: center;
+        border-radius: 15px;
+        margin: 1rem;
+      }
+
+      .manual-entry {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-top: 1rem;
+      }
+
+      .manual-entry input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #ddd;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+      }
+
+      .manual-entry input:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+      }
+
+      .scan-again-btn {
+        background: var(--primary-blue);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .scan-again-btn:hover {
+        background: var(--dark-blue);
+        transform: translateY(-1px);
+      }
+
+      .redemption-form {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-top: 1rem;
+      }
+
+      .redemption-form input {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        margin-bottom: 0.5rem;
+      }
+
+      .redemption-form input::placeholder {
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .redemption-form button {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .redemption-form button:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      @media (max-width: 768px) {
+        .scanner-container {
+          margin: 1rem;
+          max-width: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="container header-content">
+        <a href="index.html" class="logo">
+          <div class="logo-icon">A</div>
+          Adbeam
+        </a>
+        <nav>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="dashboard.html">Recycling Tracker</a></li>
+            <li><a href="recycling_guide.html">Recycling Guide</a></li>
+            <li><a href="vouchers.html">Vouchers</a></li>
+            <li><a href="leaderboard.html">Leaderboard</a></li>
+            <li><a href="about.html">About</a></li>
+          </ul>
+        </nav>
+        <div class="auth-buttons"></div>
+      </div>
+    </header>
+
+    <div class="container">
+      <div class="scanner-container">
+        <!-- Scanner Header -->
+        <div class="scanner-header">
+          <h1><i class="fas fa-qrcode me-2"></i>Voucher Scanner</h1>
+          <p>Scan QR code vouchers to redeem discounts</p>
+          
+          <div class="scanner-mode-toggle">
+            <button class="mode-btn active" data-mode="verify" onclick="setMode('verify')">
+              <i class="fas fa-search me-1"></i>Verify
+            </button>
+            <button class="mode-btn" data-mode="redeem" onclick="setMode('redeem')">
+              <i class="fas fa-check me-1"></i>Redeem
+            </button>
+          </div>
+        </div>
+
+        <!-- Camera Section -->
+        <div class="camera-section" id="camera-section">
+          <video id="scanner-video" autoplay muted playsinline></video>
+          <canvas id="scanner-canvas" style="display: none"></canvas>
+
+          <div class="scanner-overlay">
+            <div class="scan-frame">
+              <div class="scanning-line" id="scanning-line" style="display: none"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual Entry Option -->
+        <div class="manual-entry" id="manual-entry" style="display: none">
+          <h4>Manual Entry</h4>
+          <input
+            type="text"
+            id="manual-voucher-code"
+            placeholder="Enter voucher code manually"
+          />
+          <button class="control-btn start-btn" onclick="processManualEntry()">
+            Submit
+          </button>
+        </div>
+
+        <!-- Scanner Controls -->
+        <div class="scanner-controls">
+          <button class="control-btn start-btn" id="start-btn" onclick="startScanner()">
+            <i class="fas fa-camera me-2"></i>Start Scanning
+          </button>
+          <button class="control-btn stop-btn" id="stop-btn" onclick="stopScanner()" style="display: none">
+            <i class="fas fa-stop me-2"></i>Stop Scanner
+          </button>
+          <button class="control-btn" onclick="toggleManualEntry()" style="background: #6c757d; color: white">
+            <i class="fas fa-keyboard me-2"></i>Manual Entry
+          </button>
+        </div>
+
+        <!-- Result Section -->
+        <div class="result-section" id="result-section">
+          <!-- Results will be populated here -->
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="index.js"></script>
+    <script>
+      // Global variables
+      const video = document.getElementById('scanner-video');
+      const canvas = document.getElementById('scanner-canvas');
+      const ctx = canvas.getContext('2d');
+      const resultSection = document.getElementById('result-section');
+
+      let scanning = false;
+      let stream = null;
+      let currentMode = 'verify'; // 'verify' or 'redeem'
+
+      // Set scanner mode
+      function setMode(mode) {
+        currentMode = mode;
+        
+        // Update button states
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+        
+        // Update header text
+        const header = document.querySelector('.scanner-header h1');
+        if (mode === 'verify') {
+          header.innerHTML = '<i class="fas fa-search me-2"></i>Verify Voucher';
+        } else {
+          header.innerHTML = '<i class="fas fa-check me-2"></i>Redeem Voucher';
+        }
+        
+        console.log('Scanner mode set to:', mode);
+      }
+
+      // Start scanner function
+      async function startScanner() {
+        try {
+          // Request camera access
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }
+          });
+
+          video.srcObject = stream;
+          video.setAttribute('playsinline', true);
+          video.play();
+
+          scanning = true;
+
+          // Update UI
+          document.getElementById('start-btn').style.display = 'none';
+          document.getElementById('stop-btn').style.display = 'block';
+          document.getElementById('scanning-line').style.display = 'block';
+
+          // Start the scanning loop
+          requestAnimationFrame(tick);
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          showCameraError();
+        }
+      }
+
+      // Stop scanner function
+      function stopScanner() {
+        scanning = false;
+
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          stream = null;
+        }
+
+        video.srcObject = null;
+
+        // Update UI
+        document.getElementById('start-btn').style.display = 'block';
+        document.getElementById('stop-btn').style.display = 'none';
+        document.getElementById('scanning-line').style.display = 'none';
+      }
+
+      // Main scanning loop
+      function tick() {
+        if (!scanning) return;
+
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          canvas.height = video.videoHeight;
+          canvas.width = video.videoWidth;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+          if (code) {
+            console.log('QR Code detected:', code.data);
+            processVoucherScan(code.data);
+            return; // Stop scanning after successful detection
+          }
+        }
+
+        if (scanning) {
+          requestAnimationFrame(tick);
+        }
+      }
+
+      // Process the scanned voucher QR code
+      async function processVoucherScan(qrData) {
+        stopScanner();
+        showProcessing();
+
+        try {
+          // Parse QR data (could be JSON or just voucher code)
+          let voucherCode;
+          try {
+            const parsed = JSON.parse(qrData);
+            voucherCode = parsed.voucher_code || qrData;
+          } catch {
+            voucherCode = qrData;
+          }
+
+          // Verify voucher first
+          const verifyResponse = await fetch(`/api/vouchers/verify.php?code=${encodeURIComponent(voucherCode)}`);
+          const verifyData = await verifyResponse.json();
+
+          if (!verifyData.success) {
+            showError(verifyData.message || 'Invalid voucher code');
+            return;
+          }
+
+          const voucher = verifyData.data;
+
+          if (currentMode === 'verify') {
+            showVoucherDetails(voucher);
+          } else {
+            // Redeem mode
+            await redeemVoucher(voucher);
+          }
+
+        } catch (error) {
+          console.error('Error processing voucher:', error);
+          showError('Failed to process voucher. Please try again.');
+        }
+      }
+
+      // Redeem voucher
+      async function redeemVoucher(voucher) {
+        if (voucher.status !== 'active') {
+          showError(`Voucher is ${voucher.status} and cannot be redeemed`);
+          return;
+        }
+
+        if (voucher.is_expired) {
+          showError('Voucher has expired');
+          return;
+        }
+
+        // Show redemption form for purchase amount if needed
+        if (voucher.discount_type !== 'free_item') {
+          showRedemptionForm(voucher);
+          return;
+        }
+
+        // Process redemption
+        try {
+          const redeemResponse = await fetch('/api/vouchers/redeem.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              voucher_code: voucher.voucher_code,
+              redeemed_by: 'Scanner Terminal',
+              redemption_location: 'Campus Store',
+              purchase_amount: 0
+            })
+          });
+
+          const redeemData = await redeemResponse.json();
+
+          if (redeemData.success) {
+            showRedemptionSuccess(voucher, redeemData);
+          } else {
+            showError(redeemData.message || 'Redemption failed');
+          }
+
+        } catch (error) {
+          console.error('Error redeeming voucher:', error);
+          showError('Failed to redeem voucher. Please try again.');
+        }
+      }
+
+      // Show voucher details (verify mode)
+      function showVoucherDetails(voucher) {
+        const statusClass = voucher.status === 'active' ? 'result-success' : 'result-error';
+        const statusIcon = voucher.status === 'active' ? 'fa-check-circle' : 'fa-exclamation-triangle';
+        
+        resultSection.style.display = 'block';
+        resultSection.innerHTML = `
+          <div class="${statusClass}">
+            <i class="fas ${statusIcon} fa-3x mb-3"></i>
+            <h3>Voucher Details</h3>
+            
+            <div class="voucher-details">
+              <h4>${voucher.template_name}</h4>
+              <p><strong>Vendor:</strong> ${voucher.vendor_name}</p>
+              <p><strong>Discount:</strong> ${formatDiscount(voucher.discount_type, voucher.discount_value)}</p>
+              <p><strong>Status:</strong> <span style="text-transform: capitalize;">${voucher.status}</span></p>
+              <p><strong>Expires:</strong> ${new Date(voucher.expires_at).toLocaleDateString()}</p>
+              <p><strong>Customer:</strong> ${voucher.first_name} ${voucher.last_name}</p>
+              ${voucher.terms_conditions ? `<p><strong>Terms:</strong> ${voucher.terms_conditions}</p>` : ''}
+            </div>
+            
+            ${voucher.status === 'active' && !voucher.is_expired ? `
+              <button class="scan-again-btn mt-3" onclick="switchToRedeemMode('${voucher.voucher_code}')">
+                <i class="fas fa-check me-2"></i>Redeem This Voucher
+              </button>
+            ` : ''}
+            
+            <button class="scan-again-btn mt-3" onclick="resetForNewScan()">
+              <i class="fas fa-qrcode me-2"></i>Scan Another Voucher
+            </button>
+          </div>
+        `;
+      }
+
+      // Show redemption form
+      function showRedemptionForm(voucher) {
+        resultSection.style.display = 'block';
+        resultSection.innerHTML = `
+          <div class="result-success">
+            <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+            <h3>Redeem Voucher</h3>
+            
+            <div class="voucher-details">
+              <h4>${voucher.template_name}</h4>
+              <p><strong>Discount:</strong> ${formatDiscount(voucher.discount_type, voucher.discount_value)}</p>
+              <p><strong>Customer:</strong> ${voucher.first_name} ${voucher.last_name}</p>
+            </div>
+            
+            <div class="redemption-form">
+              <input type="number" id="purchase-amount" placeholder="Purchase Amount ($)" step="0.01" min="0" />
+              <input type="text" id="redemption-location" placeholder="Store/Location (optional)" />
+              <button onclick="completeRedemption('${voucher.voucher_code}')">
+                <i class="fas fa-check me-2"></i>Complete Redemption
+              </button>
+            </div>
+            
+            <button class="scan-again-btn mt-3" onclick="resetForNewScan()">
+              <i class="fas fa-times me-2"></i>Cancel
+            </button>
+          </div>
+        `;
+      }
+
+      // Complete redemption with purchase amount
+      async function completeRedemption(voucherCode) {
+        const purchaseAmount = parseFloat(document.getElementById('purchase-amount').value) || 0;
+        const redemptionLocation = document.getElementById('redemption-location').value || 'Campus Store';
+
+        if (purchaseAmount <= 0) {
+          alert('Please enter a valid purchase amount');
+          return;
+        }
+
+        showProcessing();
+
+        try {
+          const redeemResponse = await fetch('/api/vouchers/redeem.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              voucher_code: voucherCode,
+              redeemed_by: 'Scanner Terminal',
+              redemption_location: redemptionLocation,
+              purchase_amount: purchaseAmount
+            })
+          });
+
+          const redeemData = await redeemResponse.json();
+
+          if (redeemData.success) {
+            showRedemptionSuccess(redeemData.voucher, redeemData);
+          } else {
+            showError(redeemData.message || 'Redemption failed');
+          }
+
+        } catch (error) {
+          console.error('Error completing redemption:', error);
+          showError('Failed to complete redemption. Please try again.');
+        }
+      }
+
+      // Show redemption success
+      function showRedemptionSuccess(voucher, redemptionData) {
+        resultSection.innerHTML = `
+          <div class="result-success">
+            <i class="fas fa-check-circle fa-3x mb-3"></i>
+            <h3>Voucher Redeemed!</h3>
+            
+            <div class="voucher-details">
+              <h4>${voucher.template_name}</h4>
+              <div class="discount-amount">Discount: $${redemptionData.discount_amount.toFixed(2)}</div>
+              <p><strong>Original Amount:</strong> $${redemptionData.final_amount ? (redemptionData.final_amount + redemptionData.discount_amount).toFixed(2) : '0.00'}</p>
+              <p><strong>Final Amount:</strong> $${redemptionData.final_amount ? redemptionData.final_amount.toFixed(2) : '0.00'}</p>
+              <p><strong>Customer:</strong> ${voucher.first_name} ${voucher.last_name}</p>
+            </div>
+            
+            <button class="scan-again-btn mt-3" onclick="resetForNewScan()">
+              <i class="fas fa-qrcode me-2"></i>Scan Another Voucher
+            </button>
+          </div>
+        `;
+      }
+
+      // Switch to redeem mode for specific voucher
+      function switchToRedeemMode(voucherCode) {
+        setMode('redeem');
+        processVoucherScan(voucherCode);
+      }
+
+      // Manual entry function
+      function processManualEntry() {
+        const voucherCode = document.getElementById('manual-voucher-code').value.trim();
+
+        if (!voucherCode) {
+          showError('Please enter a voucher code');
+          return;
+        }
+
+        processVoucherScan(voucherCode);
+        document.getElementById('manual-voucher-code').value = '';
+      }
+
+      // Toggle manual entry
+      function toggleManualEntry() {
+        const manualEntry = document.getElementById('manual-entry');
+        manualEntry.style.display = manualEntry.style.display === 'none' ? 'block' : 'none';
+      }
+
+      // Show processing state
+      function showProcessing() {
+        resultSection.style.display = 'block';
+        resultSection.innerHTML = `
+          <div class="result-success">
+            <div class="loading-spinner"></div>
+            <h3>Processing...</h3>
+            <p>Verifying voucher details</p>
+          </div>
+        `;
+      }
+
+      // Show error message
+      function showError(message) {
+        resultSection.style.display = 'block';
+        resultSection.innerHTML = `
+          <div class="result-error">
+            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+            <h3>Error</h3>
+            <p>${message}</p>
+            <button class="scan-again-btn mt-3" onclick="resetForNewScan()">
+              <i class="fas fa-redo me-2"></i>Try Again
+            </button>
+          </div>
+        `;
+      }
+
+      // Show camera error
+      function showCameraError() {
+        document.getElementById('camera-section').innerHTML = `
+          <div class="camera-error">
+            <i class="fas fa-camera-slash fa-3x mb-3"></i>
+            <h3>Camera Access Required</h3>
+            <p>Please allow camera access to scan QR codes</p>
+            <button class="scan-again-btn mt-3" onclick="location.reload()">
+              <i class="fas fa-redo me-2"></i>Retry
+            </button>
+          </div>
+        `;
+      }
+
+      // Reset for new scan
+      function resetForNewScan() {
+        resultSection.style.display = 'none';
+        document.getElementById('manual-entry').style.display = 'none';
+      }
+
+      // Format discount display
+      function formatDiscount(type, value) {
+        switch (type) {
+          case 'percentage':
+            return `${value}% OFF`;
+          case 'fixed_amount':
+            return `$${value} OFF`;
+          case 'free_item':
+            return 'FREE';
+          default:
+            return 'DISCOUNT';
+        }
+      }
+
+      // Handle page visibility changes
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && scanning) {
+          stopScanner();
+        }
+      });
+
+      // Initialize on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('Voucher scanner initialized');
+      });
+    </script>
+  </body>
+</html>
