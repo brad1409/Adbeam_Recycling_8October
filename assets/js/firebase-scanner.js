@@ -1,4 +1,4 @@
-import { db } from "./firebaseConfig.js"
+import { db } from "./firebaseConfig.js";
 import {
   doc,
   getDoc,
@@ -11,7 +11,7 @@ import {
   query,
   where,
   limit,
-} from "firebase/firestore"
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /**
  * QR/Barcode Scanner Integration with Firebase

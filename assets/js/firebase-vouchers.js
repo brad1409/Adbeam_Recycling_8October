@@ -1,4 +1,4 @@
-import { db } from "./firebaseConfig.js"
+import { db } from "./firebaseConfig.js";
 import {
   collection,
   doc,
@@ -10,7 +10,7 @@ import {
   updateDoc,
   serverTimestamp,
   orderBy,
-} from "firebase/firestore"
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /**
  * Voucher System with Firebase

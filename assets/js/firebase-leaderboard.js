@@ -1,5 +1,5 @@
-import { db } from "./firebaseConfig.js"
-import { collection, query, where, orderBy, limit, getDocs, onSnapshot } from "firebase/firestore"
+import { db } from "./firebaseConfig.js";
+import { collection, query, where, orderBy, limit, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 /**
  * Leaderboard Management with Firebase

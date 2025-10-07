@@ -1,4 +1,4 @@
-import { db } from "./firebaseConfig.js"
+import { db } from "./firebaseConfig.js";
 import {
   collection,
   doc,
@@ -12,7 +12,7 @@ import {
   limit,
   serverTimestamp,
   increment,
-} from "firebase/firestore"
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 // Add recycling activity
 export const addRecyclingActivity = async (userId, activityData) => {

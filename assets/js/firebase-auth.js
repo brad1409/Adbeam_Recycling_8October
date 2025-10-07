@@ -1,4 +1,4 @@
-import { auth, db } from "./firebaseConfig.js"
+import { auth, db } from "./firebaseConfig.js";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -6,8 +6,14 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   updateProfile,
-} from "firebase/auth"
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore"
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import {
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 // User data structure for Firestore
 export const createUserProfile = async (userId, userData) => {
